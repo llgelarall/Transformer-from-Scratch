@@ -26,4 +26,5 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+*.BabiStories/
 >>>>>>> 3cd3257bf3b3ad75e68667def43860a00360f4a1
