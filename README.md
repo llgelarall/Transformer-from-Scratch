@@ -2,15 +2,13 @@
 
 This repository is an educational Transformer implementation path. It starts with a manual NumPy implementation, moves to a trainable PyTorch encoder-decoder model, then branches into two specialized Transformer families: BERT-style encoder-only modeling and GPT2-small-style decoder-only modeling.
 
-The goal is to make the architecture easy to inspect, modify, quantize, sparsify, and compare against future Memory Mosaics-style experiments.
-
 ---
 
 ## Roadmap
 
 ```text
 +-----------------------+      +--------------------------+      +---------------------------+
-| Transformer_S1.ipynb  | ---> | Transformer_S2(1).ipynb  | ---> | Transformer_S3.ipynb       |
+| Transformer_S1.ipynb  | ---> | Transformer_S2.ipynb  | ---> | Transformer_S3.ipynb       |
 | NumPy / from scratch  |      | reusable functions       |      | PyTorch / real experiment  |
 +-----------------------+      +--------------------------+      +---------------------------+
                                                                      |                  |
@@ -25,7 +23,7 @@ Main idea:
 
 ```text
 S1 -> understand every small operation
-S2 -> organize the operations into reusable functions
+S2 -> organize the operations into reusable functions and also exploit real world dataset
 S3 -> train a full encoder-decoder baseline on BabiStories
 BERT -> study encoder-only masked language modeling
 GPT2Small -> study decoder-only causal language modeling
@@ -38,7 +36,7 @@ GPT2Small -> study decoder-only causal language modeling
 | File | Architecture Type | Main Role | Training / Output Task |
 |---|---|---|---|
 | `Transformer_S1.ipynb` | manual encoder-decoder | understand operations from scratch | forward pass / token prediction demo |
-| `Transformer_S2(1).ipynb` | function-based encoder-decoder | organize the same logic into functions | forward, loss, accuracy |
+| `Transformer_S2.ipynb` | function-based encoder-decoder | organize the same logic into functions | forward, loss, accuracy |
 | `Transformer_S3.ipynb` | PyTorch encoder-decoder | trainable seq2seq baseline | source story segment -> next story segment |
 | `BERT.ipynb` | encoder-only Transformer | simplest BERT-style model | predict masked tokens |
 | `GPT2Small.ipynb` | decoder-only Transformer | simplest GPT2-style model | predict next token |
@@ -73,14 +71,7 @@ BabiStories/data/extracted
 
 ## Scope
 
-`Transformer_S1.ipynb` is the most detailed notebook. It uses NumPy-style manual operations to show the internal structure of a Transformer.
-
-It focuses on:
-
-```text
-tokenization, one-hot, embedding, Q/K/V, softmax, attention, multi-head attention,
-residual connection, LayerNorm, FFN, encoder block, decoder block, cross-attention
-```
+`Transformer_S1.ipynb` uses NumPy-style manual operations to show the internal structure of a Transformer.
 
 ## S1 Input and Embedding Flow
 
@@ -177,14 +168,8 @@ Not best for: long training or fair model comparison.
 
 ## Scope
 
-`Transformer_S2(1).ipynb` keeps the same encoder-decoder logic but turns the repeated code into reusable functions.
+`Transformer_S2.ipynb` keeps the same encoder-decoder logic but turns the repeated code into reusable functions.
 
-It focuses on:
-
-```text
-prepare_input(), multi_head_attention(), feed_forward_network(), encoder_block(),
-decoder_block(), encoder_stack(), decoder_stack(), vocabulary_projection(), loss, accuracy
-```
 
 ## S2 Data Preparation Flow
 
@@ -274,7 +259,7 @@ It focuses on:
 
 ```text
 BabiStories loading, story-to-pair conversion, train/valid/test split, batching,
-model classes, training loop, validation, generation, quantization hooks, sparsity hooks
+model classes, training loop, validation, generation
 ```
 
 ## S3 Data Pipeline
@@ -343,30 +328,6 @@ Expanded module view:
                                                                        +------+   +-----+   +------+
 ```
 
-## S3 Quantization and Sparsity Hook Flow
-
-```text
-Linear layer input X + weight W
-       |
-       v
-qa(X) + qw(W) -> F.linear() -> output
-```
-
-Detailed hook view:
-
-```text
-W -> sparsify(W) if use_ws=True -> qste(W, w_bits) if use_wq=True -> simulated low-bit W
-X -> qste(X, a_bits) if use_aq=True -------------------------------> simulated low-bit X
-
-simulated low-bit X + simulated low-bit W -> floating-point matmul in PyTorch
-```
-
-Important:
-
-```text
-w_bits=8 and a_bits=8 only define the simulated quantization bit-width.
-They do not mean real INT8 hardware execution unless real quantized kernels are used.
-```
 
 ## S3 Training Loop
 
@@ -389,7 +350,7 @@ Expanded view:
 
 ```text
 Purpose: train and evaluate your encoder-decoder Transformer baseline.
-Best for: BabiStories seq2seq experiments, quantization simulation, sparsity simulation.
+Best for: BabiStories seq2seq experiments.
 Closest comparison target: not Memory Mosaics directly, but your own encoder-decoder baseline.
 ```
 
@@ -401,16 +362,10 @@ Closest comparison target: not Memory Mosaics directly, but your own encoder-dec
 
 `BERT.ipynb` is a minimal encoder-only Transformer trained from scratch. It is not official pretrained BERT.
 
-It focuses on:
-
-```text
-BabiStories fixed-length examples, random masking, encoder-only blocks,
-masked token prediction, fill-mask inference, quantization/sparsity hooks
-```
 
 ## BERT Architecture
 
-BERT should be shown horizontally as an encoder-only masked-language model.
+BERT should be shown as an encoder-only masked-language model.
 
 ```text
 text -> encode -> randomly mask tokens -> token+pos embedding -> Encoder Stack -> vocab logits -> predict masked token
@@ -473,16 +428,9 @@ Not best for: direct left-to-right text generation.
 
 `GPT2Small.ipynb` is a minimal decoder-only causal Transformer trained from scratch. It is not official pretrained GPT-2.
 
-It focuses on:
-
-```text
-BabiStories language-modeling examples, causal self-attention,
-next-token prediction, validation, generation, quantization/sparsity hooks
-```
-
 ## GPT2-small Architecture
 
-GPT2-small should be shown horizontally as a decoder-only language model.
+GPT2-small should be shown as a decoder-only language model.
 
 ```text
 tokens -> x=tokens[:-1] -> token+pos embedding -> Causal Decoder Stack -> logits -> next-token prediction
@@ -555,7 +503,7 @@ Closest to Memory Mosaics comparison direction: yes.
 
 ---
 
-# Horizontal Architecture Comparison
+# Architecture Comparison
 
 ```text
 Your S3 encoder-decoder:
@@ -568,64 +516,4 @@ text with <MASK> -> encoder stack -> masked token prediction
 
 GPT2Small decoder-only:
 previous tokens -> causal decoder stack -> next token prediction
-```
-
----
-
-# Quantization and Sparsity Meaning
-
-```python
-"w_bits": 8
-"a_bits": 8
-```
-
-These fields define the bit-width used by fake/simulated quantization hooks.
-
-```text
-use_wq=False and use_aq=False:
-    normal floating-point computation
-
-use_wq=True or use_aq=True:
-    simulated low-bit values through qste()
-    computation still uses PyTorch floating-point matmul
-
-real INT8 execution:
-    not implemented yet
-    requires real quantized kernels/operators
-```
-
----
-
-# Suggested Experiment Order
-
-```text
-1. Run S3 baseline without quantization or sparsity.
-2. Run GPT2Small baseline on the same BabiStories source.
-3. Compare train_loss, val_loss, accuracy, and generated text.
-4. Enable fake weight quantization: use_wq=True.
-5. Enable fake activation quantization: use_aq=True.
-6. Enable weight sparsity: use_ws=True.
-7. Enable attention sparsity: attn_top_k=8, 16, or 32.
-8. Later add a Memory Mosaic notebook and compare it mainly against GPT2Small.
-```
-
----
-
-# Future Memory Mosaic Comparison Path
-
-```text
-Current baseline closest to Memory Mosaics:
-GPT2Small.ipynb
-
-Reason:
-Memory Mosaics language experiments are closest to decoder-only language modeling,
-not encoder-decoder seq2seq or BERT-style masked token prediction.
-```
-
-Future notebooks:
-
-```text
-MemoryMosaic_S1.ipynb       -> minimal associative memory unit
-MemoryMosaic_S2.ipynb       -> GPT2-like Memory Mosaic block
-Compare_GPT2_vs_Mosaic.ipynb -> same BabiStories split, same metrics, same sequence length
 ```
